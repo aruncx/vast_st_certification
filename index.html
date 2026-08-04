@@ -7,11 +7,8 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-5FCKZTT5ZL');
 </script>
-  
-  
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spoken Tutorial FOSS Certification Records &middot; VAST</title>
@@ -190,16 +187,7 @@ body{
   color:var(--navy);
   opacity:.05;
   white-space:nowrap;
-  animation-name:floatDrift;
-  animation-timing-function:ease-in-out;
-  animation-iteration-count:infinite;
-}
-@keyframes floatDrift{
-  0%{ transform:translate(0,0) rotate(0deg); }
-  25%{ transform:translate(16px,-22px) rotate(2deg); }
-  50%{ transform:translate(-12px,-8px) rotate(-2deg); }
-  75%{ transform:translate(10px,14px) rotate(1deg); }
-  100%{ transform:translate(0,0) rotate(0deg); }
+  will-change:left, top;
 }
 @keyframes fadeInUp{
   from{ opacity:0; transform:translateY(14px); }
@@ -1340,6 +1328,49 @@ renderStudentResults('');
 let initialView = 'overview';
 try { initialView = location.hash.replace('#','') || 'overview'; } catch (err) { /* ignore in sandboxed preview */ }
 showView(initialView);
+
+// ---------- Floating course names: bounce off the viewport edges ----------
+(function initFloatingBounce(){
+  if (typeof requestAnimationFrame === 'undefined') return;
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const els = document.querySelectorAll('.floating-courses span');
+  if (!els.length || reduceMotion) return;
+
+  const SPEED_MIN = 55, SPEED_MAX = 95; // px/sec — brisk drift
+  const state = [];
+  els.forEach(el => {
+    const rect = el.getBoundingClientRect();
+    const angle = Math.random() * Math.PI * 2;
+    const speed = SPEED_MIN + Math.random() * (SPEED_MAX - SPEED_MIN);
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    el.style.right = 'auto';
+    state.push({
+      el, x: rect.left, y: rect.top,
+      vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      w: rect.width, h: rect.height,
+    });
+  });
+
+  let last = performance.now();
+  function tick(now){
+    const dt = Math.min((now - last) / 1000, 0.05); // cap dt so a paused/backgrounded tab doesn't jump
+    last = now;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    state.forEach(s => {
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      if (s.x <= 0){ s.x = 0; s.vx = Math.abs(s.vx); }
+      else if (s.x + s.w >= vw){ s.x = vw - s.w; s.vx = -Math.abs(s.vx); }
+      if (s.y <= 0){ s.y = 0; s.vy = Math.abs(s.vy); }
+      else if (s.y + s.h >= vh){ s.y = vh - s.h; s.vy = -Math.abs(s.vy); }
+      s.el.style.left = s.x + 'px';
+      s.el.style.top = s.y + 'px';
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
 
 
 </script>
